@@ -79,7 +79,7 @@ public:
     // Entry point for Task 1 menu / demo
     // ----------------------------------------------------------
     void run() {
-        cout << "\n===== TASK 1: LEARNER REGISTRATION & SESSION MANAGEMENT =====\n";
+        cout << "\n===== LEARNER REGISTRATION & SESSION MANAGEMENT =====\n";
 
     }
 };
@@ -129,7 +129,7 @@ public:
     // Entry point for Task 2 menu / demo
     // ----------------------------------------------------------
     void run() {
-        cout << "\n===== TASK 2: ACTIVITY NAVIGATION & SESSION FLOW =====\n";
+        cout << "\n===== ACTIVITY NAVIGATION & SESSION FLOW =====\n";
         // TODO: implement menu loop
     }
 };
@@ -179,7 +179,7 @@ public:
     // Entry point for Task 3 menu / demo
     // ----------------------------------------------------------
     void run() {
-        cout << "\n===== TASK 3: RECENT ACTIVITY LOGGING & PERFORMANCE HISTORY =====\n";
+        cout << "\n===== RECENT ACTIVITY LOGGING & PERFORMANCE HISTORY =====\n";
         // TODO: implement menu loop
     }
 };
@@ -239,7 +239,7 @@ public:
     // Entry point for Task 4 menu / demo
     // ----------------------------------------------------------
     void run() {
-        cout << "\n===== TASK 4: AT-RISK LEARNER PRIORITY & RECOMMENDATION ENGINE =====\n";
+        cout << "\n===== AT-RISK LEARNER PRIORITY & RECOMMENDATION ENGINE =====\n";
         // TODO: implement menu loop
     }
 };
@@ -257,15 +257,15 @@ int main() {
     int choice = 0;
 
     do {
-        cout << "\n========================================\n";
-        cout << "  PLAPS – Main Menu\n";
-        cout << "========================================\n";
-        cout << "  1. Learner Registration & Session Mgmt\n";
-        cout << "  2. Activity Navigation & Session Flow\n";
-        cout << "  3. Recent Activity Logging & History\n";
-        cout << "  4. At-Risk Learner Priority & Recs\n";
-        cout << "  0. Exit\n";
-        cout << "----------------------------------------\n";
+        cout << "=============================================\n";
+        cout << "                   Main Menu                 \n";
+        cout << "=============================================\n";
+        cout << "  [1] Learner Registration & Session Mgmt\n";
+        cout << "  [2] Activity Navigation & Session Flow\n";
+        cout << "  [3] Recent Activity Logging & History\n";
+        cout << "  [4] At-Risk Learner Priority & Recs\n";
+        cout << "  [0] Exit\n";
+        cout << "=============================================\n";
         cout << "  Enter choice: ";
         cin  >> choice;
 
