@@ -51,8 +51,6 @@ struct LogRecord {
 
 // ============================================================
 //  TASK 1: LEARNER REGISTRATION & SESSION MANAGEMENT
-//  Author : [Name / Student ID]
-//  Data Structures : Linked-List Queue + Circular Queue
 // ============================================================
 
 struct Node {
@@ -251,8 +249,6 @@ public:
 
 // ============================================================
 //  TASK 2: ACTIVITY NAVIGATION & SESSION FLOW
-//  Author : [Name / Student ID]
-//  Data Structures : Custom Stack (backtracking + redo)
 // ============================================================
 
 // Forward declarations
@@ -501,8 +497,6 @@ public:
 
 // ============================================================
 //  TASK 3: RECENT ACTIVITY LOGGING & PERFORMANCE HISTORY
-//  Author : [Name / Student ID]
-//  Data Structure : Circular Queue (fixed-size activity log)
 // ============================================================
 
 const int MAX_LOG = 20;
@@ -582,7 +576,7 @@ public:
         cout << "  Log successfully exported to activity_log.csv\n";
     }
 
-    // Used by Task 4 to read records for a specific learner
+    // Used by Task 4 to read records for a learner
     int getRecordsByLearner(int learnerId, LogRecord* out, int maxOut) {
         int found = 0, idx = front;
         for (int i = 0; i < count && found < maxOut; i++) {
@@ -633,9 +627,6 @@ public:
     }
 };
 
-// ============================================================
-//  checkAnswer — defined here so Task3 is fully known
-// ============================================================
 
 void EducationalSession::checkAnswer(Activity& activity, string answer) {
     string aLow = answer, cLow = activity.answer;
@@ -649,7 +640,6 @@ void EducationalSession::checkAnswer(Activity& activity, string answer) {
         int earned = (attempts == 1) ? activity.pointsValue : max(1, activity.pointsValue / 2);
         logger.logOutcome(activity.id, activity.title, earned, activity.pointsValue, attempts);
 
-        // Only log to Task 3 on correct answer — one record per activity
         LogRecord r;
         r.learnerId     = current.id;
         r.learnerName   = current.name;
@@ -674,10 +664,8 @@ void EducationalSession::checkAnswer(Activity& activity, string answer) {
 
 // ============================================================
 //  TASK 4: AT-RISK LEARNER PRIORITY & RECOMMENDATION ENGINE
-//  Author : [Name / Student ID]
-//  Data Structure : Priority Queue (max-heap by risk score)
 // ============================================================
-
+// i'm sorry ali, eepy
 class Task4 {
 public:
     void run() {
