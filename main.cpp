@@ -12,6 +12,9 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <iomanip>
+#include <algorithm>
+#include <limits>
 using namespace std;
 
 struct Learner
@@ -23,13 +26,16 @@ struct Learner
 
 struct Activity
 {
-    int activityId;
-    string topic;
-    string difficulty;
-    float score;
-    int learnerId;
-};
+    int id;
+    string title;
+    string question;
+    string answer;
+    int pointsValue;
 
+    Activity() : id(0), pointsValue(0) {}
+    Activity(int i, string t, string q, string a, int points)
+        : id(i), title(t), question(q), answer(a), pointsValue(points) {}
+};
 // ============================================================
 //  TASK 1: LEARNER REGISTRATION & SESSION MANAGEMENT
 //  Author : [Name / Student ID]
@@ -317,52 +323,328 @@ public:
 //  Data Structure : Stack (for backtracking) + Queue (for upcoming)
 // ============================================================
 
-// TODO: Implement your data structure(s) here
-//   e.g. a Stack class, an activity queue, etc.
+// Custom stack — no STL
+class ActivityStack
+{
+private:
+    static const int MAX = 50;
+    Activity data[MAX];
+    int top;
+
+public:
+    ActivityStack() : top(-1) {}
+
+    bool isEmpty() { return top == -1; }
+    bool isFull() { return top == MAX - 1; }
+
+    void push(Activity a)
+    {
+        if (!isFull())
+            data[++top] = a;
+    }
+
+    Activity pop()
+    {
+        if (!isEmpty())
+            return data[top--];
+        return Activity();
+    }
+
+    void clear() { top = -1; }
+};
+
+// Activity outcome record
+struct ActivityOutcome
+{
+    int activityId;
+    string title;
+    int score;
+    int maxScore;
+    int attempts;
+    bool completed;
+
+    ActivityOutcome() : activityId(0), score(0), maxScore(10), attempts(0), completed(false) {}
+};
+
+// Logger — fixed array, no STL
+class ActivityLogger
+{
+private:
+    static const int MAX_OUTCOMES = 50;
+    ActivityOutcome outcomes[MAX_OUTCOMES];
+    int count;
+
+public:
+    ActivityLogger() : count(0) {}
+
+    ActivityOutcome *findOutcome(int activityId)
+    {
+        for (int i = 0; i < count; i++)
+            if (outcomes[i].activityId == activityId)
+                return &outcomes[i];
+        return NULL;
+    }
+
+    void logOutcome(int activityId, const string &title, int scoreEarned, int maxPoints, int attemptCount)
+    {
+        ActivityOutcome *o = findOutcome(activityId);
+        if (o)
+        {
+            o->score = scoreEarned;
+            o->attempts = attemptCount;
+            o->completed = true;
+        }
+        else if (count < MAX_OUTCOMES)
+        {
+            outcomes[count].activityId = activityId;
+            outcomes[count].title = title;
+            outcomes[count].score = scoreEarned;
+            outcomes[count].maxScore = maxPoints;
+            outcomes[count].attempts = attemptCount;
+            outcomes[count].completed = true;
+            count++;
+        }
+    }
+
+    int getAttempts(int activityId)
+    {
+        ActivityOutcome *o = findOutcome(activityId);
+        return o ? o->attempts : 0;
+    }
+
+    int getCount() { return count; }
+
+    void displayFinalReport() const
+    {
+        int totalScore = 0, totalPossible = 0, completedCount = 0;
+        cout << "\n"
+             << string(60, '=') << "\n";
+        cout << "=== SESSION COMPLETION REPORT ===\n";
+        cout << string(60, '=') << "\n";
+        cout << "\n  " << left << setw(5) << "ID" << setw(40) << "Activity"
+             << setw(12) << "Score" << setw(10) << "Attempts" << "\n";
+        cout << "  " << string(66, '-') << "\n";
+
+        for (int i = 0; i < count; i++)
+        {
+            if (outcomes[i].completed)
+            {
+                string t = outcomes[i].title.length() > 38
+                               ? outcomes[i].title.substr(0, 35) + "..."
+                               : outcomes[i].title;
+                cout << "  " << left << setw(5) << outcomes[i].activityId
+                     << setw(40) << t
+                     << setw(12) << (to_string(outcomes[i].score) + "/" + to_string(outcomes[i].maxScore))
+                     << setw(10) << outcomes[i].attempts << "\n";
+                totalScore += outcomes[i].score;
+                totalPossible += outcomes[i].maxScore;
+                completedCount++;
+            }
+        }
+        cout << "  " << string(66, '-') << "\n";
+        double pct = (totalPossible > 0)
+                         ? (static_cast<double>(totalScore) / totalPossible) * 100.0
+                         : 0.0;
+        cout << "\n  Activities Completed : " << completedCount << "\n";
+        cout << "  Total Score          : " << totalScore << "/" << totalPossible << "\n";
+        cout << "  Overall Percentage   : " << fixed << setprecision(1) << pct << "%\n";
+    }
+
+    void clear() { count = 0; }
+};
+
+// Educational session — Task 2 core
+class EducationalSession
+{
+private:
+    static const int MAX_ACTIVITIES = 50;
+    Activity activities[MAX_ACTIVITIES];
+    int activityCount;
+    ActivityStack progressStack;
+    ActivityStack redoStack;
+    ActivityLogger logger;
+    int currentActivityIndex;
+
+public:
+    EducationalSession() : activityCount(0), currentActivityIndex(-1)
+    {
+        initializeActivities();
+    }
+
+    void initializeActivities()
+    {
+        activities[activityCount++] = Activity(1, "Activity 1", "2B or not 2B?", "2B", 2);
+        activities[activityCount++] = Activity(2, "Activity 2", "Does key taste better than bread?", "No", 2);
+        activities[activityCount++] = Activity(3, "Activity 3", "What is the airspeed velocity of an unladened swallow?", "Dunno", 2);
+        activities[activityCount++] = Activity(4, "Activity 4", "Sorewa TM", "Opera O", 2);
+        activities[activityCount++] = Activity(5, "Activity 5", "Bakushin Armpit?", "Lick", 2);
+    }
+
+    void showCurrentActivity()
+    {
+        if (currentActivityIndex >= 0 && currentActivityIndex < activityCount)
+        {
+            Activity &cur = activities[currentActivityIndex];
+            cout << "\n"
+                 << string(50, '=') << "\n";
+            cout << "  Activity " << cur.id << ": " << cur.title << "\n";
+            cout << string(50, '=') << "\n";
+            cout << "  Question: " << cur.question << "\n";
+            cout << "  Your answer (or 'skip'): ";
+            string ans;
+            getline(cin, ans);
+            if (ans != "skip")
+                checkAnswer(cur, ans);
+        }
+    }
+
+    void checkAnswer(Activity &activity, string answer)
+    {
+        string aLow = answer, cLow = activity.answer;
+        transform(aLow.begin(), aLow.end(), aLow.begin(), ::tolower);
+        transform(cLow.begin(), cLow.end(), cLow.begin(), ::tolower);
+
+        int attempts = logger.getAttempts(activity.id) + 1;
+
+        if (aLow == cLow)
+        {
+            int earned = (attempts == 1) ? activity.pointsValue : max(1, activity.pointsValue / 2);
+            logger.logOutcome(activity.id, activity.title, earned, activity.pointsValue, attempts);
+            cout << "\n  Correct! You earned " << earned << " point(s)!\n";
+            nextActivity();
+        }
+        else
+        {
+            cout << "\n  Not quite. Correct answer: " << activity.answer << "\n";
+            logger.logOutcome(activity.id, activity.title, 0, activity.pointsValue, attempts);
+            cout << "  Attempts so far: " << attempts << "\n";
+            cout << "  Try again? (y/n): ";
+            char t;
+            cin >> t;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            if (tolower(t) == 'y')
+                showCurrentActivity();
+        }
+    }
+
+    void nextActivity()
+    {
+        if (currentActivityIndex < activityCount - 1)
+        {
+            if (currentActivityIndex >= 0)
+            {
+                progressStack.push(activities[currentActivityIndex]);
+                redoStack.clear();
+            }
+            currentActivityIndex++;
+            cout << "\n  -> Moving to next activity...\n";
+            showCurrentActivity();
+        }
+        else
+        {
+            cout << "\n  Congratulations! You've completed all activities!\n";
+        }
+    }
+
+    void previousActivity()
+    {
+        if (!progressStack.isEmpty())
+        {
+            if (currentActivityIndex >= 0)
+                redoStack.push(activities[currentActivityIndex]);
+            Activity prev = progressStack.pop();
+            for (int i = 0; i < activityCount; i++)
+            {
+                if (activities[i].id == prev.id)
+                {
+                    currentActivityIndex = i;
+                    break;
+                }
+            }
+            cout << "\n  <- Going back...\n";
+            showCurrentActivity();
+        }
+        else
+        {
+            cout << "\n  You're at the beginning.\n";
+        }
+    }
+
+    void redoActivity()
+    {
+        if (!redoStack.isEmpty())
+        {
+            if (currentActivityIndex >= 0)
+                progressStack.push(activities[currentActivityIndex]);
+            Activity redo = redoStack.pop();
+            for (int i = 0; i < activityCount; i++)
+            {
+                if (activities[i].id == redo.id)
+                {
+                    currentActivityIndex = i;
+                    break;
+                }
+            }
+            cout << "\n  Redoing activity...\n";
+            showCurrentActivity();
+        }
+        else
+        {
+            cout << "\n  No activities to redo.\n";
+        }
+    }
+
+    void run()
+    {
+        cout << "\n=== Welcome to the Interactive Learning Session ===\n";
+        cout << "  N = Next  |  B = Back  |  R = Redo  |  Q = Quit\n";
+        if (activityCount > 0)
+        {
+            currentActivityIndex = 0;
+            showCurrentActivity();
+        }
+
+        char choice;
+        do
+        {
+            cout << "\n  Navigation: [N]ext  [B]ack  [R]edo  [Q]uit\n";
+            cout << "  Enter choice: ";
+            cin >> choice;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+            switch (toupper(choice))
+            {
+            case 'N':
+                nextActivity();
+                break;
+            case 'B':
+                previousActivity();
+                break;
+            case 'R':
+                redoActivity();
+                break;
+            case 'Q':
+                cout << "\n  Thanks for learning!\n";
+                if (logger.getCount() > 0)
+                    logger.displayFinalReport();
+                break;
+            default:
+                cout << "\n  Invalid choice.\n";
+            }
+        } while (toupper(choice) != 'Q');
+    }
+};
 
 class Task2
 {
+private:
+    EducationalSession session;
+
 public:
-    // ----------------------------------------------------------
-    // Load / initialise the sequence of activities for a session
-    // ----------------------------------------------------------
-    void loadActivities()
-    {
-        // TODO: implement
-    }
-
-    // ----------------------------------------------------------
-    // Move forward to the next activity
-    // ----------------------------------------------------------
-    void nextActivity()
-    {
-        // TODO: implement
-    }
-
-    // ----------------------------------------------------------
-    // Go back / undo to revisit the previous activity
-    // ----------------------------------------------------------
-    void previousActivity()
-    {
-        // TODO: implement
-    }
-
-    // ----------------------------------------------------------
-    // Record the outcome of a completed activity
-    // (score, topic, difficulty) and forward to Task 3 logger
-    // ----------------------------------------------------------
-    void recordOutcome()
-    {
-        // TODO: implement
-    }
-
-    // ----------------------------------------------------------
-    // Entry point for Task 2 menu / demo
-    // ----------------------------------------------------------
     void run()
     {
-        cout << "\n===== ACTIVITY NAVIGATION & SESSION FLOW =====\n";
-        // TODO: implement menu loop
+        cout << "\n===== TASK 2: ACTIVITY NAVIGATION & SESSION FLOW =====\n";
+        session.run();
     }
 };
 
