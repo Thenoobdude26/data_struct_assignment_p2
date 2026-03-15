@@ -49,8 +49,18 @@ struct LogRecord {
     bool   completed;
 };
 
+struct AtRiskLearner {
+    int    learnerId;
+    string learnerName;
+    float  riskScore;
+    string recommendation;
+};
+
 // ============================================================
 //  TASK 1: LEARNER REGISTRATION & SESSION MANAGEMENT
+//  Author : [Name / Student ID]
+//  Data Structures : Linked-List Queue (registration)
+//                  + Circular Queue (active session)
 // ============================================================
 
 struct Node {
@@ -141,6 +151,16 @@ public:
         return false;
     }
 
+    // Returns a learner by ID — used by Task 2 to identify who is starting
+    Learner getLearnerById(int id) {
+        int idx = front;
+        for (int i = 0; i < count; i++) {
+            if (arr[idx].id == id) return arr[idx];
+            idx = (idx + 1) % capacity;
+        }
+        Learner e; e.id = -1; e.name = ""; return e;
+    }
+
     void enqueue(Learner learner) {
         if (isFull()) { cout << "  Active session is full.\n"; return; }
         rear      = (rear + 1) % capacity;
@@ -157,10 +177,7 @@ public:
         return tmp;
     }
 
-    Learner getCurrentLearner() {
-        if (isEmpty()) { Learner e; e.id = -1; e.name = ""; return e; }
-        return arr[front];
-    }
+    bool isSessionEmpty() { return count == 0; }
 
     void display() {
         if (isEmpty()) { cout << "  Active session is empty.\n"; return; }
@@ -201,8 +218,13 @@ private:
 public:
     Task1(int sessionSize) : sessionQueue(sessionSize) {}
 
-    Learner getCurrentLearner() {
-        return sessionQueue.getCurrentLearner();
+    // Returns a specific learner from the active session by ID
+    Learner getLearnerById(int id) {
+        return sessionQueue.getLearnerById(id);
+    }
+
+    bool isSessionEmpty() {
+        return sessionQueue.isSessionEmpty();
     }
 
     void run() {
@@ -249,10 +271,11 @@ public:
 
 // ============================================================
 //  TASK 2: ACTIVITY NAVIGATION & SESSION FLOW
+//  Author : [Name / Student ID]
+//  Data Structures : Custom Stack (backtracking + redo)
 // ============================================================
 
-// Forward declarations
-class Task3;
+class Task3; // forward declaration
 
 class ActivityStack {
 private:
@@ -326,6 +349,8 @@ public:
 
     int getCount() { return count; }
 
+    void reset() { count = 0; }
+
     void displayFinalReport() const {
         int totalScore = 0, totalPossible = 0, completedCount = 0;
         cout << "\n" << string(60, '=') << "\n";
@@ -369,10 +394,13 @@ private:
     int            currentActivityIndex;
     Task3*         task3Ref;
     Task1*         task1Ref;
+    Learner        activeLearner; // locked in at session start
 
 public:
     EducationalSession(Task3* t3, Task1* t1)
         : activityCount(0), currentActivityIndex(-1), task3Ref(t3), task1Ref(t1) {
+        activeLearner.id = -1;
+        activeLearner.name = "";
         initializeActivities();
     }
 
@@ -384,7 +412,6 @@ public:
         activities[activityCount++] = Activity(5, "Activity 5", "Bakushin Armpit?", "Lick", 2);
     }
 
-    // Declared here, defined after Task3
     void checkAnswer(Activity& activity, string answer);
 
     void showCurrentActivity() {
@@ -411,7 +438,7 @@ public:
             cout << "\n  -> Moving to next activity...\n";
             showCurrentActivity();
         } else {
-            cout << "\n  Congratulations! You've completed all activities!\n";
+            cout << "\n  Congratulations! You have completed all activities!\n";
         }
     }
 
@@ -425,7 +452,7 @@ public:
             cout << "\n  <- Going back...\n";
             showCurrentActivity();
         } else {
-            cout << "\n  You're at the beginning.\n";
+            cout << "\n  You are at the beginning.\n";
         }
     }
 
@@ -447,18 +474,33 @@ public:
         cout << "\n=== Welcome to the Interactive Learning Session ===\n";
         cout << "  N = Next  |  B = Back  |  R = Redo  |  Q = Quit\n";
 
-        Learner current = task1Ref->getCurrentLearner();
-        if (current.id == -1) {
-            cout << "\n  No learner is currently in an active session.\n";
+        if (task1Ref->isSessionEmpty()) {
+            cout << "\n  No learners in active session.\n";
             cout << "  Please admit a learner in Task 1 first.\n";
             return;
         }
-        cout << "  Starting session for: " << current.name << "\n";
 
-        if (activityCount > 0) {
-            currentActivityIndex = 0;
-            showCurrentActivity();
+        // Ask which learner is starting — they must be in the active session
+        int learnerId;
+        cout << "\n  Enter your learner ID to start: ";
+        cin >> learnerId;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        activeLearner = task1Ref->getLearnerById(learnerId);
+        if (activeLearner.id == -1) {
+            cout << "\n  Learner ID " << learnerId << " is not in the active session.\n";
+            cout << "  Please admit this learner in Task 1 first.\n";
+            return;
         }
+
+        // Reset logger for fresh session
+        logger.reset();
+        progressStack.clear();
+        redoStack.clear();
+        currentActivityIndex = 0;
+
+        cout << "  Starting session for: " << activeLearner.name << "\n";
+        showCurrentActivity();
 
         char choice;
         do {
@@ -497,6 +539,8 @@ public:
 
 // ============================================================
 //  TASK 3: RECENT ACTIVITY LOGGING & PERFORMANCE HISTORY
+//  Author : [Name / Student ID]
+//  Data Structure : Circular Queue (fixed-size activity log)
 // ============================================================
 
 const int MAX_LOG = 20;
@@ -516,8 +560,8 @@ public:
             front = (front + 1) % MAX_LOG;
             count--;
         }
-        rear        = (rear + 1) % MAX_LOG;
-        data[rear]  = record;
+        rear       = (rear + 1) % MAX_LOG;
+        data[rear] = record;
         count++;
     }
 
@@ -526,7 +570,7 @@ public:
         cout << "\n  --- Activity Log ---\n";
         int idx = front;
         for (int i = 0; i < count; i++) {
-            cout << "  Learner ID   : " << data[idx].learnerId << "\n";
+            cout << "  Learner ID   : " << data[idx].learnerId   << "\n";
             cout << "  Learner Name : " << data[idx].learnerName << "\n";
             cout << "  Activity     : " << data[idx].activityTitle << "\n";
             cout << "  Score        : " << data[idx].score << "/" << data[idx].maxScore << "\n";
@@ -560,15 +604,15 @@ public:
     void exportCSV() {
         ofstream file("activitylog.csv");
         if (!file.is_open()) { cout << "  Error: Could not create file.\n"; return; }
-        file << "learner id,learner name,activity_title,score,max_score,attempts,completed\n";
+        file << "learner_id,learner_name,activity_title,score,max_score,attempts,completed\n";
         int idx = front;
         for (int i = 0; i < count; i++) {
-            file << data[idx].learnerId   << ","
-                 << data[idx].learnerName << ","
+            file << data[idx].learnerId     << ","
+                 << data[idx].learnerName   << ","
                  << data[idx].activityTitle << ","
-                 << data[idx].score       << ","
-                 << data[idx].maxScore    << ","
-                 << data[idx].attempts    << ","
+                 << data[idx].score         << ","
+                 << data[idx].maxScore      << ","
+                 << data[idx].attempts      << ","
                  << (data[idx].completed ? "Yes" : "No") << "\n";
             idx = (idx + 1) % MAX_LOG;
         }
@@ -576,7 +620,6 @@ public:
         cout << "  Log successfully exported to activity_log.csv\n";
     }
 
-    // Used by Task 4 to read records for a learner
     int getRecordsByLearner(int learnerId, LogRecord* out, int maxOut) {
         int found = 0, idx = front;
         for (int i = 0; i < count && found < maxOut; i++) {
@@ -586,6 +629,28 @@ public:
         }
         return found;
     }
+
+    int getUniqueLearnerIds(int* out, int maxOut) {
+        int found = 0, idx = front;
+        for (int i = 0; i < count; i++) {
+            int  lid = data[idx].learnerId;
+            bool dup = false;
+            for (int j = 0; j < found; j++)
+                if (out[j] == lid) { dup = true; break; }
+            if (!dup && found < maxOut) out[found++] = lid;
+            idx = (idx + 1) % MAX_LOG;
+        }
+        return found;
+    }
+
+    string getLearnerName(int learnerId) {
+        int idx = front;
+        for (int i = 0; i < count; i++) {
+            if (data[idx].learnerId == learnerId) return data[idx].learnerName;
+            idx = (idx + 1) % MAX_LOG;
+        }
+        return "Unknown";
+    }
 };
 
 class Task3 {
@@ -593,15 +658,11 @@ private:
     CircularLog log;
 
 public:
-    void logActivity(LogRecord record) {
-        log.addRecord(record);
-    }
-
-    int getRecordsByLearner(int learnerId, LogRecord* out, int maxOut) {
-        return log.getRecordsByLearner(learnerId, out, maxOut);
-    }
-
-    int getTotalCount() { return log.getCount(); }
+    void   logActivity(LogRecord record)                            { log.addRecord(record); }
+    int    getRecordsByLearner(int id, LogRecord* out, int maxOut)  { return log.getRecordsByLearner(id, out, maxOut); }
+    int    getUniqueLearnerIds(int* out, int maxOut)                { return log.getUniqueLearnerIds(out, maxOut); }
+    string getLearnerName(int id)                                   { return log.getLearnerName(id); }
+    int    getTotalCount()                                          { return log.getCount(); }
 
     void run() {
         int choice;
@@ -627,6 +688,9 @@ public:
     }
 };
 
+// ============================================================
+//  checkAnswer — defined after Task3 so it can call logActivity
+// ============================================================
 
 void EducationalSession::checkAnswer(Activity& activity, string answer) {
     string aLow = answer, cLow = activity.answer;
@@ -634,15 +698,15 @@ void EducationalSession::checkAnswer(Activity& activity, string answer) {
     transform(cLow.begin(), cLow.end(), cLow.begin(), ::tolower);
 
     int attempts = logger.getAttempts(activity.id) + 1;
-    Learner current = task1Ref->getCurrentLearner();
 
     if (aLow == cLow) {
         int earned = (attempts == 1) ? activity.pointsValue : max(1, activity.pointsValue / 2);
         logger.logOutcome(activity.id, activity.title, earned, activity.pointsValue, attempts);
 
+        // Use activeLearner locked in at session start — correct learner every time
         LogRecord r;
-        r.learnerId     = current.id;
-        r.learnerName   = current.name;
+        r.learnerId     = activeLearner.id;
+        r.learnerName   = activeLearner.name;
         r.activityTitle = activity.title;
         r.score         = earned;
         r.maxScore      = activity.pointsValue;
@@ -664,14 +728,179 @@ void EducationalSession::checkAnswer(Activity& activity, string answer) {
 
 // ============================================================
 //  TASK 4: AT-RISK LEARNER PRIORITY & RECOMMENDATION ENGINE
+//  Author : [Name / Student ID]
+//  Data Structure : Priority Queue (max-heap by risk score)
 // ============================================================
-// i'm sorry ali, eepy
-class Task4 {
+
+class PriorityQueue {
+private:
+    static const int MAX = 50;
+    AtRiskLearner    data[MAX];
+    int              count;
+
+    void heapifyUp(int idx) {
+        while (idx > 0) {
+            int parent = (idx - 1) / 2;
+            if (data[idx].riskScore > data[parent].riskScore) {
+                AtRiskLearner tmp = data[idx];
+                data[idx]        = data[parent];
+                data[parent]     = tmp;
+                idx = parent;
+            } else break;
+        }
+    }
+
+    void heapifyDown(int idx) {
+        while (true) {
+            int left    = 2 * idx + 1;
+            int right   = 2 * idx + 2;
+            int largest = idx;
+            if (left  < count && data[left].riskScore  > data[largest].riskScore) largest = left;
+            if (right < count && data[right].riskScore > data[largest].riskScore) largest = right;
+            if (largest != idx) {
+                AtRiskLearner tmp = data[idx];
+                data[idx]         = data[largest];
+                data[largest]     = tmp;
+                idx = largest;
+            } else break;
+        }
+    }
+
 public:
+    PriorityQueue() : count(0) {}
+
+    bool isEmpty()  { return count == 0; }
+    int  getCount() { return count; }
+
+    void insert(AtRiskLearner learner) {
+        if (count < MAX) {
+            data[count++] = learner;
+            heapifyUp(count - 1);
+        }
+    }
+
+    AtRiskLearner extractMax() {
+        AtRiskLearner top = data[0];
+        data[0] = data[--count];
+        heapifyDown(0);
+        return top;
+    }
+};
+
+class Task4 {
+private:
+    Task3* task3Ref;
+
+    // Risk score formula:
+    //   +1.0 per failed attempt
+    //   +up to 3.0 for low score ratio (below 60%)
+    //   +2.0 per incomplete activity
+    float calculateRiskScore(int learnerId) {
+        LogRecord records[MAX_LOG];
+        int count = task3Ref->getRecordsByLearner(learnerId, records, MAX_LOG);
+        if (count == 0) return 0.0f;
+        float risk = 0.0f;
+        for (int i = 0; i < count; i++) {
+            risk += (records[i].attempts - 1) * 1.0f;
+            if (records[i].maxScore > 0) {
+                float ratio = (float)records[i].score / records[i].maxScore;
+                if (ratio < 0.6f) risk += (1.0f - ratio) * 3.0f;
+            }
+            if (!records[i].completed) risk += 2.0f;
+        }
+        return risk;
+    }
+
+    string generateRecommendation(int learnerId, float riskScore) {
+        LogRecord records[MAX_LOG];
+        int count = task3Ref->getRecordsByLearner(learnerId, records, MAX_LOG);
+        if (count == 0) return "No activity data available.";
+
+        int   worstIdx   = 0;
+        float worstRatio = 1.0f;
+        for (int i = 0; i < count; i++) {
+            float ratio = records[i].maxScore > 0
+                ? (float)records[i].score / records[i].maxScore : 0.0f;
+            if (ratio < worstRatio) { worstRatio = ratio; worstIdx = i; }
+        }
+        string worst = records[worstIdx].activityTitle;
+
+        if      (riskScore >= 5.0f) return "High risk   - Repeat " + worst + " and attempt an easier version.";
+        else if (riskScore >= 2.0f) return "Medium risk - Review " + worst + " before moving on.";
+        else                        return "Low risk    - Keep going! Focus on " + worst + " for improvement.";
+    }
+
+    void buildQueue(PriorityQueue& pq) {
+        int ids[MAX_LOG];
+        int count = task3Ref->getUniqueLearnerIds(ids, MAX_LOG);
+        for (int i = 0; i < count; i++) {
+            AtRiskLearner a;
+            a.learnerId      = ids[i];
+            a.learnerName    = task3Ref->getLearnerName(ids[i]);
+            a.riskScore      = calculateRiskScore(ids[i]);
+            a.recommendation = generateRecommendation(ids[i], a.riskScore);
+            pq.insert(a);
+        }
+    }
+
+public:
+    Task4(Task3* t3) : task3Ref(t3) {}
+
+    void displayAtRiskLearners() {
+        PriorityQueue pq;
+        buildQueue(pq);
+        if (pq.isEmpty()) { cout << "  No data found. Complete activities in Task 2 first.\n"; return; }
+
+        cout << "\n  --- At-Risk Learner Rankings (Highest Risk First) ---\n";
+        cout << "  " << string(70, '-') << "\n";
+        cout << "  " << left << setw(5) << "Rank" << setw(20) << "Name"
+             << setw(12) << "Risk Score" << "Recommendation\n";
+        cout << "  " << string(70, '-') << "\n";
+
+        int rank = 1;
+        while (!pq.isEmpty()) {
+            AtRiskLearner a = pq.extractMax();
+            cout << "  " << left << setw(5) << rank++
+                 << setw(20) << a.learnerName
+                 << setw(12) << fixed << setprecision(1) << a.riskScore
+                 << a.recommendation << "\n";
+        }
+        cout << "  " << string(70, '-') << "\n";
+    }
+
+    void exportAtRiskList() {
+        PriorityQueue pq;
+        buildQueue(pq);
+        if (pq.isEmpty()) { cout << "  No data to export.\n"; return; }
+
+        ofstream file("ARL.csv");
+        if (!file.is_open()) { cout << "  Error: Could not create file.\n"; return; }
+        file << "learner_id,learner_name,risk_score,recommendation\n";
+        while (!pq.isEmpty()) {
+            AtRiskLearner a = pq.extractMax();
+            file << a.learnerId   << ","
+                 << a.learnerName << ","
+                 << fixed << setprecision(1) << a.riskScore << ","
+                 << a.recommendation << "\n";
+        }
+        file.close();
+        cout << "  Exported to at_risk_learners.csv\n";
+    }
+
     void run() {
-        cout << "\n===== TASK 4: AT-RISK LEARNER PRIORITY & RECOMMENDATION ENGINE =====\n";
-        cout << "  [Coming soon]\n";
-        // TODO: implement
+        int choice;
+        do {
+            cout << "\n===== TASK 4: AT-RISK LEARNER PRIORITY & RECOMMENDATION ENGINE =====\n";
+            cout << "  [1] Display at-risk learner rankings\n";
+            cout << "  [2] Export at-risk list to CSV\n";
+            cout << "  [0] Back to main menu\n";
+            cout << "  Enter choice: ";
+            cin >> choice; cin.ignore();
+
+            if (choice == 1)      { displayAtRiskLearners(); }
+            else if (choice == 2) { exportAtRiskList(); }
+            else if (choice != 0) { cout << "  Invalid choice.\n"; }
+        } while (choice != 0);
     }
 };
 
@@ -687,7 +916,7 @@ int main() {
     Task1 task1(sessionSize);
     Task3 task3;
     Task2 task2(&task3, &task1);
-    Task4 task4;
+    Task4 task4(&task3);
 
     int choice = 0;
     do {

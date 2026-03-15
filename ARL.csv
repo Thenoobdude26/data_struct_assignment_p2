@@ -1,1 +1,3 @@
-learner_id, learner_name, risk_score, recommendation
+learner_id,learner_name,risk_score,recommendation
+1,tatenda,0.0,Low risk    - Keep going! Focus on Activity 1 for improvement.
+2,ali,0.0,Low risk    - Keep going! Focus on Activity 1 for improvement.

@@ -1,2 +1,10 @@
-learner ID,learner name,activity name,score,max score,attempts,completed
-
+learner_id,learner_name,activity_title,score,max_score,attempts,completed
+1,tatenda,Activity 1,2,2,1,Yes
+1,tatenda,Activity 2,2,2,1,Yes
+1,tatenda,Activity 3,2,2,1,Yes
+1,tatenda,Activity 4,2,2,1,Yes
+1,tatenda,Activity 5,2,2,1,Yes
+2,ali,Activity 1,2,2,1,Yes
+2,ali,Activity 3,2,2,1,Yes
+2,ali,Activity 4,2,2,1,Yes
+2,ali,Activity 5,2,2,1,Yes
